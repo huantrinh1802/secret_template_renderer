@@ -1,10 +1,11 @@
 [tool.poetry]
 name = "temv"
 version = "0.1.0"
-description = ""
-authors = ["Ben Trinh <6076614+huantrinh1802@users.noreply.github.com>"]
+authors = ["Ben Trinh <huantrinh1802@gmail.com>"]
+description = "A tool for templating .env files."
+keywords = ["template", "management", "jinja2", "secrets", "dotenv", ".env"]
 readme = "README.md"
-packages = [{include = "src"}]
+packages = [{ include = "src" }]
 
 [tool.poetry.scripts]
 temv = 'src.app:main'
@@ -12,6 +13,10 @@ temv = 'src.app:main'
 [tool.poetry.dependencies]
 python = "^3.12"
 jinja2 = "^3.1.5"
+
+[tool.poetry.urls]
+Homepage = "https://github.com/huantrinh1802/temv"
+Issues = "https://github.com/huantrinh1802/temv/issues"
 
 
 [build-system]
