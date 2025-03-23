@@ -68,7 +68,7 @@ str encrypt|decrypt [-f <template_path>] [-o <output_path>] [-i <input_string>] 
 - `-i`, `--input`:   Input string to be rendered
 - `-p`, `--password`:   Password to be used for encryption
 
-### Example
+#### Example
 
 ```dotenv
 

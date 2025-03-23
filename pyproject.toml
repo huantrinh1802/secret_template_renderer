@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "Secret Template Renderer"
+name = "secret_template_renderer"
 version = "0.2.0"
 authors = ["Ben Trinh <huantrinh1802@gmail.com>"]
 description = "A tool for templating .env files and more."
