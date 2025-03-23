@@ -1,22 +1,25 @@
 [tool.poetry]
-name = "temv"
-version = "0.1.0"
+name = "Secret Template Renderer"
+version = "0.2.0"
 authors = ["Ben Trinh <huantrinh1802@gmail.com>"]
-description = "A tool for templating .env files."
+description = "A tool for templating .env files and more."
 keywords = ["template", "management", "jinja2", "secrets", "dotenv", ".env"]
 readme = "README.md"
 packages = [{ include = "src" }]
 
 [tool.poetry.scripts]
-temv = 'src.app:main'
+str = 'src.app:main'
 
 [tool.poetry.dependencies]
 python = "^3.12"
 jinja2 = "^3.1.5"
 
+[tool.poetry.extras]
+crypto = ["cryptography"]
+
 [tool.poetry.urls]
-Homepage = "https://github.com/huantrinh1802/temv"
-Issues = "https://github.com/huantrinh1802/temv/issues"
+Homepage = "https://github.com/huantrinh1802/secret_template_renderer"
+Issues = "https://github.com/huantrinh1802/secret_template_renderer/issues"
 
 
 [build-system]
