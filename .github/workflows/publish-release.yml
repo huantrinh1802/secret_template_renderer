@@ -1,4 +1,4 @@
-name: Draft Release on pyproject.toml Version Change
+name: Publish Draft Release on pyproject.toml version change
 permissions:
   contents: write
   pull-requests: write
@@ -8,17 +8,18 @@ on:
       - "pyproject.toml"  # Only run when pyproject.toml changes
     branches:
       - main  # Only run on main branch changes
+    types:
+      - closed
 
 jobs:
   create-release:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -30,12 +31,10 @@ jobs:
           virtualenvs-in-project: true
       - name: Extract version from pyproject.toml
         run: echo "VERSION=v$(poetry version --short)" >> $GITHUB_ENV
-
       - name: Check if tag already exists
         id: check_tag
         run: |
           if git rev-parse "${VERSION}" >/dev/null 2>&1; then
-            echo "Tag ${VERSION} already exists. Skipping tagging."
             echo "TAG_EXISTS=true" >> $GITHUB_ENV
           else
             echo "TAG_EXISTS=false" >> $GITHUB_ENV
@@ -47,15 +46,12 @@ jobs:
           git tag -d $VERSION
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
-      - name: Create and push version tag
-        run: |
-          git tag $VERSION
-          git push -f --tags origin
       - name: Create GitHub Release Draft
+        if: env.TAG_EXISTS == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ env.VERSION }}
-          name: Release ${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
           generate_release_notes: true
-          draft: true
+          draft: false
           prerelease: false
