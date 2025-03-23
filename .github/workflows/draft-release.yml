@@ -1,0 +1,50 @@
+name: Draft Release on pyproject.toml Version Change
+
+on:
+  push:
+    paths:
+      - "pyproject.toml"  # Only run when pyproject.toml changes
+    branches:
+      - main  # Only run on main branch changes
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.12'
+
+      - name: Install toml-cli
+        run: pip install toml-cli
+
+      - name: Extract version from pyproject.toml
+        run: echo "VERSION=$(toml get pyproject.toml tool.poetry.version --unwrap)" >> $GITHUB_ENV
+
+      - name: Check if tag already exists
+        id: check_tag
+        run: |
+          if git rev-parse "v${VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${VERSION} already exists. Skipping release."
+            exit 1
+          fi
+
+      - name: Create and push version tag
+        run: |
+          git tag v${VERSION}
+          git push origin v${VERSION}
+
+      - name: Create GitHub Release Draft
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          name: Release v${{ env.VERSION }}
+          draft: true
+          prerelease: false
