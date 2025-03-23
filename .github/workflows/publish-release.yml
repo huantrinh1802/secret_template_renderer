@@ -45,13 +45,7 @@ jobs:
           gh release delete $VERSION --cleanup-tag --yes --repo $GITHUB_REPOSITORY
           git tag -d $VERSION
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
-      - name: Create GitHub Release Draft
-        if: env.TAG_EXISTS == 'true'
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: ${{ env.VERSION }}
-          name: Release ${{ env.VERSION }}
-          generate_release_notes: true
-          draft: false
-          prerelease: false
+          GH_TOKEN: ${{ github.token }}
+      - name: Publish GitHub Release Draft
+        run: |
+          gh release create $VERSION --draft false --repo $GITHUB_REPOSITORY
