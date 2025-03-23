@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "secret_template_renderer"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Ben Trinh <huantrinh1802@gmail.com>"]
 description = "A tool for templating .env files and more."
 keywords = ["template", "management", "jinja2", "secrets", "dotenv", ".env"]
