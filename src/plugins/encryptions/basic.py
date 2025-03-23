@@ -67,7 +67,7 @@ def decrypt(encrypted: str, password: str | None) -> str | None:
             # Remove padding
             unpadder = PKCS7(128).unpadder()
             plaintext = unpadder.update(padded_plaintext) + unpadder.finalize()
-        except:
+        except Exception:
             if time < 2:
                 logger.warning("Cannot decrypt the secret. Try again!")
             else:
