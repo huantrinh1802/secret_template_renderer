@@ -12,9 +12,9 @@ from cryptography.hazmat.primitives.padding import PKCS7
 logger = logging.getLogger(__name__)
 
 
-def derive_key(password: str) -> bytes:
-    """Derives a 32-byte key from the password using SHA-256."""
-    return hashlib.sha256(password.encode()).digest()
+def derive_key(password: str, salt: bytes) -> bytes:
+    """Derives a 32-byte key from the password using PBKDF2."""
+    return hashlib.pbkdf2_hmac('sha256', password.encode(), salt, 100000, dklen=32)
 
 
 def encrypt(plaintext: str, password: str | None) -> str:
@@ -23,7 +23,8 @@ def encrypt(plaintext: str, password: str | None) -> str:
         password = os.getenv("TEMV_BASIC_PASSWORD")
     if password is None:
         password = getpass()
-    key = derive_key(password)
+    salt = os.urandom(16)  # Generate a random salt
+    key = derive_key(password, salt)
     iv = os.urandom(16)  # AES block size is 16 bytes
     cipher = Cipher(algorithms.AES(key), modes.CBC(iv), backend=default_backend())
     encryptor = cipher.encryptor()
@@ -35,7 +36,7 @@ def encrypt(plaintext: str, password: str | None) -> str:
     ciphertext = encryptor.update(padded_data) + encryptor.finalize()
 
     # Encode IV + ciphertext in Base64
-    return base64.b64encode(iv + ciphertext).decode()
+    return base64.b64encode(salt + iv + ciphertext).decode()
 
 
 def decrypt(encrypted: str, password: str | None) -> str | None:
@@ -50,10 +51,11 @@ def decrypt(encrypted: str, password: str | None) -> str | None:
         if password is None:
             password = getpass()
         try:
-            key = derive_key(password)
             encrypted_bytes = base64.b64decode(encrypted)
-            iv = encrypted_bytes[:16]  # First 16 bytes are the IV
-            ciphertext = encrypted_bytes[16:]
+            salt = encrypted_bytes[:16]  # First 16 bytes are the salt
+            key = derive_key(password, salt)
+            iv = encrypted_bytes[16:32]  # Next 16 bytes are the IV
+            ciphertext = encrypted_bytes[32:]
 
             cipher = Cipher(
                 algorithms.AES(key), modes.CBC(iv), backend=default_backend()
