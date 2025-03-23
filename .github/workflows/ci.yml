@@ -70,5 +70,3 @@ jobs:
         run: |
           source .venv/bin/activate
           pytest
-        env:
-          TW_CONFIG: /tmp/m_taskwarrior_d.json
