@@ -203,10 +203,11 @@ class Args(TypedDict):
     debug: bool
 
 
-def main():
+def generate_commands() -> Args:
     parser = argparse.ArgumentParser(description="Render Jinja template with secrets.")
     _ = parser.add_argument("-d", "--debug", help="Debug mode", action="store_true")
     subparsers = parser.add_subparsers(help="subcommand help", dest="subcommand")
+    _ = subparsers.add_parser("version", help="Print version")
     generate_cmd = subparsers.add_parser("generate", help="Generate file from template")
     _ = generate_cmd.add_argument(
         "-f", "--file", required=True, help="Path to the Jinja template."
@@ -229,10 +230,15 @@ def main():
     _ = decrypt_cmd.add_argument("-f", "--file", help="File")
     _ = decrypt_cmd.add_argument("-o", "--output", help="Directory")
     args: Args = vars(parser.parse_args())  #pyright: ignore[reportAssignmentType]
+    return args
+
+
+def main():
+    args = generate_commands()
     input_content: str | None = None
     if "input" in args and args['input'] is not None:
         input_content = args['input']
-    elif args['file'] is not None:
+    elif "file" in args and args['file'] is not None:
         try:
             with open(args['file'], "r") as f:
                 input_content = "".join(f.readlines())
@@ -244,6 +250,9 @@ def main():
         logger.logger.setLevel(logging.DEBUG)
     content: str | None = None
     match args.get('subcommand', None):
+        case "version":
+            import importlib.metadata
+            print(importlib.metadata.version('secret_template_renderer'))
         case "generate":
             load_plugins("secrets")
             load_plugins("encryptions")
