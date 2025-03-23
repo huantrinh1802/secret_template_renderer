@@ -33,16 +33,20 @@ jobs:
         id: check_tag
         run: |
           if git rev-parse "v${VERSION}" >/dev/null 2>&1; then
-            echo "Tag v${VERSION} already exists. Skipping release."
-            exit 1
+            echo "Tag v${VERSION} already exists. Skipping tagging."
+            echo "TAG_EXISTS=true" >> $GITHUB_ENV
+          else
+            echo "TAG_EXISTS=false" >> $GITHUB_ENV
           fi
 
       - name: Create and push version tag
+        if: env.TAG_EXISTS == 'false'
         run: |
           git tag v${VERSION}
           git push origin v${VERSION}
 
       - name: Create GitHub Release Draft
+        if: env.TAG_EXISTS == 'false'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ env.VERSION }}
