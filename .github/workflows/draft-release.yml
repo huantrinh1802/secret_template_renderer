@@ -46,7 +46,7 @@ jobs:
           gh release delete $VERSION --cleanup-tag --yes --repo $GITHUB_REPOSITORY
           git tag -d $VERSION
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ github.token }}
       - name: Create and push version tag
         run: |
           git tag $VERSION
