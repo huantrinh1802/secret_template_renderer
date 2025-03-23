@@ -39,13 +39,6 @@ jobs:
           else
             echo "TAG_EXISTS=false" >> $GITHUB_ENV
           fi
-      - name: Remove release if it already exists
-        if: env.TAG_EXISTS == 'true'
-        run: |
-          gh release delete $VERSION --cleanup-tag --yes --repo $GITHUB_REPOSITORY
-          git tag -d $VERSION
-        env:
-          GH_TOKEN: ${{ github.token }}
       - name: Publish GitHub Release Draft
         run: |
           gh release create $VERSION --draft false --repo $GITHUB_REPOSITORY
