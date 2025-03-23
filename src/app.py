@@ -236,7 +236,7 @@ def main():
         try:
             with open(args['file'], "r") as f:
                 input_content = "".join(f.readlines())
-        except:
+        except Exception:
             input_content = None
     else:
         input_content = read_stdin()
