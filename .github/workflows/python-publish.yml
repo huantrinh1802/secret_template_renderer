@@ -17,16 +17,24 @@ permissions:
 
 jobs:
   deploy:
-
     runs-on: ubuntu-latest
-
+    environment:
+      name: pypi
+    permissions:
+      id-token: write
+      contents: read
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python
-      uses: actions/setup-python@v4
+    - uses: actions/checkout@v5
+    - name: Setup python
+      uses: actions/setup-python@v6
       with:
-        python-version: '3.x'
-    - name: Build and publish to pypi
-      uses: JRubics/poetry-publish@v2.0
+        python-version-file: "pyproject.toml"
+    - name: Install UV
+      uses: astral-sh/setup-uv@v7
       with:
-          pypi_token: ${{ secrets.PYPI_TOKEN }}
+        enable-cache: true
+    - name: Build
+      run: uv build
+    - name: Publish
+      run: uv publish
+

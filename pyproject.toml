@@ -1,30 +1,40 @@
-[tool.poetry]
+[project]
 name = "secret_template_renderer"
 version = "0.2.5"
-authors = ["Ben Trinh <huantrinh1802@gmail.com>"]
 description = "A tool for templating .env files and more."
-keywords = ["template", "management", "jinja2", "secrets", "dotenv", ".env"]
 readme = "README.md"
-packages = [{ include = "src" }]
+authors = [
+  { name = "Ben Trinh", email = "huantrinh1802@gmail.com" }
+]
+requires-python = ">=3.12"
+keywords = ["template", "management", "jinja2", "secrets", "dotenv", ".env"]
+license = { text = "MIT" } # Optional, but recommended
 
-[tool.poetry.scripts]
-str = 'src.app:main'
+# Standard PEP 621 dependency table
+dependencies = [
+  "jinja2>=3.1.5",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-jinja2 = "^3.1.5"
-
-[tool.poetry.extras]
+[project.optional-dependencies]
 crypto = ["cryptography"]
 
-[tool.poetry.urls]
+[project.scripts]
+str = "src.app:main"
+
+[project.urls]
 Homepage = "https://github.com/huantrinh1802/secret_template_renderer"
 Issues = "https://github.com/huantrinh1802/secret_template_renderer/issues"
 
+[dependency-groups]
+dev = [
+  "ruff>=0.11.2",
+]
 
-[tool.poetry.group.dev.dependencies]
-ruff = "^0.11.2"
+# Packaging behavior (PEP 621) — keep this
+[tool.setuptools]
+packages = ["src"]
 
 [build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
