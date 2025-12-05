@@ -17,20 +17,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Setup python
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.12'
-      - name: Install Poetry
-        uses: snok/install-poetry@v1
+          python-version-file: "pyproject.toml"
+      - name: Install UV
+        uses: astral-sh/setup-uv@v7
         with:
-          virtualenvs-create: true
-          virtualenvs-in-project: true
+          enable-cache: true
       - name: Extract version from pyproject.toml
-        run: echo "VERSION=v$(poetry version --short)" >> $GITHUB_ENV
+        run: echo "VERSION=v$(uv version --short)" >> $GITHUB_ENV
       - name: Check if tag already exists
         id: check_tag
         run: |
