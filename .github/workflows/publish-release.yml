@@ -41,3 +41,5 @@ jobs:
       - name: Publish GitHub Release Draft
         run: |
           gh release create $VERSION --draft false --repo $GITHUB_REPOSITORY
+        env:
+          GH_TOKEN: ${{ github.token }}
