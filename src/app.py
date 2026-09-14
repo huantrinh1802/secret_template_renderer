@@ -9,6 +9,7 @@ import secrets
 import string
 import subprocess
 import sys
+import tempfile
 import types
 from collections.abc import Callable
 from functools import partial
@@ -188,6 +189,44 @@ def shell(command: str) -> str | None:
         return None
 
 
+def detect_shell() -> str:
+    name = pathlib.Path(os.environ.get("SHELL", "")).name
+    return name if name in ("bash", "zsh", "fish") else "bash"
+
+
+def generate_session_code(
+    template_content: str,
+    env_var: str,
+    shell_type: str,
+    password: str | None,
+    allow_shell: bool = False,
+) -> str:
+    """Render template to a temp file; return shell code to export its path and delete on exit."""
+    rendered = render_template(template_content, password, allow_shell=allow_shell)
+
+    fd, tmp_path = tempfile.mkstemp(prefix="temv-")
+    try:
+        os.write(fd, rendered.encode())
+    finally:
+        os.close(fd)
+    os.chmod(tmp_path, 0o600)
+
+    if shell_type == "fish":
+        func_name = f"__temv_cleanup_{pathlib.Path(tmp_path).name.replace('-', '_')}"
+        return (
+            f"set -x {env_var} {tmp_path}\n"
+            f"function {func_name} --on-event fish_exit\n"
+            f"    rm -f {tmp_path}\n"
+            f"    set -e {env_var}\n"
+            f"end\n"
+        )
+    else:  # bash / zsh
+        return (
+            f"export {env_var}={tmp_path}\n"
+            f"trap 'rm -f {tmp_path}; unset {env_var}' EXIT\n"
+        )
+
+
 def render_template(template_content: str, password: str | None, allow_shell: bool = False):
     env: Environment = Environment(loader=SafeFileSystemLoader("."))
     env.globals["get_secret"] = get_secret  # pyright: ignore [reportArgumentType]
@@ -225,6 +264,8 @@ class Args(TypedDict):
     output: str | None
     debug: bool
     allow_shell: bool
+    env: str | None
+    shell: str | None
 
 
 def generate_commands() -> Args:
@@ -255,6 +296,41 @@ def generate_commands() -> Args:
             "Enable the shell() template function. "
             "Executes arbitrary OS commands — only use with trusted templates."
         ),
+        action="store_true",
+        default=False,
+    )
+
+    session_cmd = subparsers.add_parser(
+        "session",
+        help="Render template to a temp file and emit shell code to export its path and delete on exit.",
+    )
+    _ = session_cmd.add_argument(
+        "-f", "--file", help="Path to the Jinja template.", default=None
+    )
+    _ = session_cmd.add_argument(
+        "-i", "--input", help="Template content string (overrides -f).", default=None
+    )
+    _ = session_cmd.add_argument(
+        "--env",
+        required=True,
+        metavar="VAR",
+        help="Environment variable name to point at the rendered temp file.",
+    )
+    _ = session_cmd.add_argument(
+        "--shell",
+        choices=["bash", "zsh", "fish"],
+        default=None,
+        help="Shell syntax to emit (default: auto-detect from $SHELL).",
+    )
+    _ = session_cmd.add_argument(
+        "-p",
+        "--password",
+        help="Password for decrypt (prefer TEMV_BASIC_PASSWORD env var).",
+        default=None,
+    )
+    _ = session_cmd.add_argument(
+        "--allow-shell",
+        help="Enable the shell() template function.",
         action="store_true",
         default=False,
     )
@@ -317,6 +393,18 @@ def main():
                 content = render_template(
                     input_content,
                     args.get("password", None),
+                    allow_shell=args.get("allow_shell", False),
+                )
+        case "session":
+            load_plugins("secrets")
+            load_plugins("encryptions")
+            if input_content:
+                shell_type = args.get("shell") or detect_shell()
+                content = generate_session_code(
+                    input_content,
+                    env_var=args["env"],
+                    shell_type=shell_type,
+                    password=args.get("password"),
                     allow_shell=args.get("allow_shell", False),
                 )
         case "encrypt":
