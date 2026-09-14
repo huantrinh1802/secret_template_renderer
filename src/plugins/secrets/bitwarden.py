@@ -19,7 +19,10 @@ def get_bitwarden_secret(item_name: str, path: str) -> str | None:
     if not path:
         return result.stdout.strip()
 
-    type_, value = path.split(".", 1)
+    parts = path.split(".", 1)
+    if len(parts) != 2:
+        return None
+    type_, value = parts
     match type_:
         case "field":
             for field in item.get("fields", []):
