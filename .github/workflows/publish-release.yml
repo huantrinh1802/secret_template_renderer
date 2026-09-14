@@ -30,16 +30,12 @@ jobs:
           enable-cache: true
       - name: Extract version from pyproject.toml
         run: echo "VERSION=v$(uv version --short)" >> $GITHUB_ENV
-      - name: Check if tag already exists
-        id: check_tag
+      - name: Publish GitHub Release
         run: |
-          if git rev-parse "${VERSION}" >/dev/null 2>&1; then
-            echo "TAG_EXISTS=true" >> $GITHUB_ENV
+          if gh release view $VERSION --repo $GITHUB_REPOSITORY >/dev/null 2>&1; then
+            gh release edit $VERSION --draft=false --repo $GITHUB_REPOSITORY
           else
-            echo "TAG_EXISTS=false" >> $GITHUB_ENV
+            gh release create $VERSION --generate-notes --repo $GITHUB_REPOSITORY
           fi
-      - name: Publish GitHub Release Draft
-        run: |
-          gh release create $VERSION --draft false --repo $GITHUB_REPOSITORY
         env:
           GH_TOKEN: ${{ github.token }}
