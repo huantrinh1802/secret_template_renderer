@@ -1,6 +1,6 @@
 [project]
 name = "secret_template_renderer"
-version = "0.2.5"
+version = "0.2.6"
 description = "A tool for templating .env files and more."
 readme = "README.md"
 authors = [
