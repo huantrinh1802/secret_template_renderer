@@ -98,3 +98,17 @@ def test_no_shell_injection(mock_run):
     call_args = mock_run.call_args[0][0]
     assert call_args == ["bw", "get", "item", malicious]
     assert mock_run.call_args[1].get("shell", False) is False
+
+
+@patch("src.plugins.secrets.bitwarden.subprocess.run")
+def test_ssh_key_private_key(mock_run):
+    item = {**ITEM, "type": 5, "sshKey": {"privateKey": "PRIV", "publicKey": "PUB"}}
+    mock_run.return_value = _run_ok(item)
+    assert get_bitwarden_secret("my-key", "sshKey.privateKey") == "PRIV"
+    assert get_bitwarden_secret("my-key", "sshKey.publicKey") == "PUB"
+
+
+@patch("src.plugins.secrets.bitwarden.subprocess.run")
+def test_ssh_key_missing_returns_none(mock_run):
+    mock_run.return_value = _run_ok()
+    assert get_bitwarden_secret("my-item", "sshKey.privateKey") is None

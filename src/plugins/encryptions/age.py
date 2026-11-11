@@ -98,9 +98,12 @@ def _ssh_agent_recipients() -> list[str]:
 def _recipients() -> list[str]:
     """Explicit recipients, plus SSH-agent keys; else derived from the identity."""
     configured = re.split(r"[,\n]", os.getenv(_RECIPIENT_ENV, ""))
-    recipients = [r.strip() for r in configured if r.strip()] + _ssh_agent_recipients()
-    if recipients:
-        return recipients
+    explicit = [r.strip() for r in configured if r.strip()]
+    from_agent = _ssh_agent_recipients()
+    if explicit or from_agent:
+        return explicit + from_agent
+    if os.getenv(_SSH_AGENT_ENV):
+        return []  # agent requested but yielded nothing; already reported
 
     identity = _identity()
     keygen = _binary("age-keygen")

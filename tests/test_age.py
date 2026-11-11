@@ -148,9 +148,10 @@ class TestSshKeys:
         monkeypatch.setenv("STR_AGE_IDENTITY", str(key))
         assert age.decrypt(enc) == "via-agent"
 
-    def test_agent_filter_no_match(self, fake_agent, monkeypatch):
+    def test_agent_filter_no_match(self, fake_agent, monkeypatch, caplog):
         monkeypatch.setenv("STR_AGE_SSH_AGENT", "nonexistent")
         assert age.encrypt("x") is None
+        assert [r.message for r in caplog.records if "identity" in r.message] == []
 
     def test_identity_from_secret_provider(self, ssh_key, fake_agent, monkeypatch):
         from src import app

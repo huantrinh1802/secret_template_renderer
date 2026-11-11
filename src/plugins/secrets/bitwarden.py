@@ -31,6 +31,8 @@ def get_bitwarden_secret(item_name: str, path: str) -> str | None:
             return None
         case "login":
             return item.get("login", {}).get(value)
+        case "sshKey":
+            return item.get("sshKey", {}).get(value)
         case _:
             return None
 
