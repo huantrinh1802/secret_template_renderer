@@ -204,6 +204,14 @@ Execute a shell command and return its stdout. **Only available when `--allow-sh
 
 ## Security
 
+### Failures abort rendering
+
+If `decrypt()` or `encrypt()` fails (wrong password, a host that is not an age recipient, missing key), `generate` and `session` print the error, exit with code 1 and write no output, rather than rendering `None` into the file.
+
+### Output files are private
+
+`-o` writes the file with mode `0600` regardless of umask, and tightens an existing file to `0600`.
+
 ### `shell()` is opt-in
 
 `shell()` executes arbitrary OS commands and is **not registered by default**. Only enable it with `--allow-shell` when you fully trust the template source. Never use it with templates from untrusted repositories or generated configs.
