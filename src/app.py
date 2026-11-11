@@ -17,6 +17,7 @@ from typing import Any, Literal, TypedDict
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 
+from src.env import getenv
 from src.logger import Logging
 
 # Registry for secret providers
@@ -45,7 +46,7 @@ def load_plugins(plugin_type: plugins_type):
     cwd_config_plugins = pathlib.Path.cwd() / ".temv" / "plugins" / plugin_type
     if cwd_config_plugins.exists():
         _load_plugins_from_dir(cwd_config_plugins, plugin_type)
-    env_var_plugin_dir = os.getenv("TEMV_PLUGIN_DIR", None)
+    env_var_plugin_dir = getenv("PLUGIN_DIR")
     if env_var_plugin_dir is None:
         env_var_plugin_dir = os.getenv("XDG_CONFIG_DIR")
     if env_var_plugin_dir:
@@ -293,7 +294,7 @@ def generate_commands() -> Args:
     _ = generate_cmd.add_argument(
         "-p",
         "--password",
-        help="Password for decrypt (insecure: visible in process list; prefer TEMV_BASIC_PASSWORD env var).",
+        help="Password for decrypt (insecure: visible in process list; prefer STR_BASIC_PASSWORD env var).",
         default=None,
     )
     _ = generate_cmd.add_argument(
@@ -331,7 +332,7 @@ def generate_commands() -> Args:
     _ = session_cmd.add_argument(
         "-p",
         "--password",
-        help="Password for decrypt (prefer TEMV_BASIC_PASSWORD env var).",
+        help="Password for decrypt (prefer STR_BASIC_PASSWORD env var).",
         default=None,
     )
     _ = session_cmd.add_argument(
@@ -345,7 +346,7 @@ def generate_commands() -> Args:
     _ = encrypt_cmd.add_argument(
         "-p",
         "--password",
-        help="Password (insecure: visible in process list; prefer TEMV_BASIC_PASSWORD env var).",
+        help="Password (insecure: visible in process list; prefer STR_BASIC_PASSWORD env var).",
         default=None,
     )
     _ = encrypt_cmd.add_argument("-i", "--input", help="Input")
@@ -392,7 +393,7 @@ def generate_commands() -> Args:
     _ = decrypt_cmd.add_argument(
         "-p",
         "--password",
-        help="Password (insecure: visible in process list; prefer TEMV_BASIC_PASSWORD env var).",
+        help="Password (insecure: visible in process list; prefer STR_BASIC_PASSWORD env var).",
         default=None,
     )
     _ = decrypt_cmd.add_argument("-i", "--input", help="Input")
