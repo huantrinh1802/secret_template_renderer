@@ -1,6 +1,6 @@
 [project]
 name = "secret_template_renderer"
-version = "0.4.1"
+version = "0.4.2"
 description = "A tool for templating .env files and more."
 readme = "README.md"
 authors = [
@@ -36,8 +36,8 @@ dev = [
 ]
 
 # Packaging behavior (PEP 621) — keep this
-[tool.setuptools]
-packages = ["src"]
+[tool.setuptools.packages.find]
+include = ["src", "src.*"]
 
 [build-system]
 requires = ["setuptools>=61.0"]
