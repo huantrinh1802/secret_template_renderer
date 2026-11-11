@@ -2,6 +2,7 @@ name: Publish Draft Release on pyproject.toml version change
 permissions:
   contents: write
   pull-requests: write
+  actions: write
 on:
   pull_request:
     paths:
@@ -37,5 +38,11 @@ jobs:
           else
             gh release create $VERSION --generate-notes --repo $GITHUB_REPOSITORY
           fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+      # Events from GITHUB_TOKEN don't trigger the `release: published` workflow,
+      # so start the PyPI upload explicitly (from main, building the release tag).
+      - name: Trigger PyPI publish
+        run: gh workflow run python-publish.yml --ref main -f tag=$VERSION --repo $GITHUB_REPOSITORY
         env:
           GH_TOKEN: ${{ github.token }}
