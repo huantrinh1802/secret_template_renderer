@@ -11,6 +11,14 @@ name: Upload Python Package
 on:
   release:
     types: [published]
+  # Releases created with the built-in GITHUB_TOKEN do not fire the `release`
+  # event, so publish-release.yml dispatches this workflow explicitly.
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Release tag to build and publish (e.g. v0.4.0)"
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -25,6 +33,8 @@ jobs:
       contents: read
     steps:
     - uses: actions/checkout@v5
+      with:
+        ref: ${{ inputs.tag || github.ref }}
     - name: Setup python
       uses: actions/setup-python@v6
       with:
