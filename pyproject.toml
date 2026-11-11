@@ -17,6 +17,9 @@ dependencies = [
 
 [project.optional-dependencies]
 crypto = ["cryptography"]
+age = [
+    "pyrage>=1.4.0",
+]
 
 [project.scripts]
 str = "src.app:main"

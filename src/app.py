@@ -269,6 +269,9 @@ class Args(TypedDict):
     encryption: str
     identity: str | None
     recipient: str | None
+    identity_secret: str | None
+    passphrase: bool
+    ssh_agent: str | None
 
 
 def generate_commands() -> Args:
@@ -361,6 +364,24 @@ def generate_commands() -> Args:
         default=None,
     )
     _ = encrypt_cmd.add_argument(
+        "--identity-secret",
+        help="Read the age private key from a secrets provider, as provider:key[:path] (or TEMV_AGE_IDENTITY_SECRET).",
+        default=None,
+    )
+    _ = encrypt_cmd.add_argument(
+        "--passphrase",
+        help="Use age passphrase mode (reads TEMV_AGE_PASSPHRASE, else prompts).",
+        action="store_true",
+        default=False,
+    )
+    _ = encrypt_cmd.add_argument(
+        "--ssh-agent",
+        nargs="?",
+        const="1",
+        help="Encrypt to public keys held by the SSH agent; optional text filters keys (or TEMV_AGE_SSH_AGENT).",
+        default=None,
+    )
+    _ = encrypt_cmd.add_argument(
         "-r",
         "--recipient",
         help="age recipient public key(s), comma-separated (or TEMV_AGE_RECIPIENT; defaults to the identity's).",
@@ -387,6 +408,24 @@ def generate_commands() -> Args:
     _ = decrypt_cmd.add_argument(
         "--identity",
         help="age identity (private key) file (or TEMV_AGE_IDENTITY).",
+        default=None,
+    )
+    _ = decrypt_cmd.add_argument(
+        "--identity-secret",
+        help="Read the age private key from a secrets provider, as provider:key[:path] (or TEMV_AGE_IDENTITY_SECRET).",
+        default=None,
+    )
+    _ = decrypt_cmd.add_argument(
+        "--passphrase",
+        help="Use age passphrase mode (reads TEMV_AGE_PASSPHRASE, else prompts).",
+        action="store_true",
+        default=False,
+    )
+    _ = decrypt_cmd.add_argument(
+        "--ssh-agent",
+        nargs="?",
+        const="1",
+        help="Encrypt to public keys held by the SSH agent; optional text filters keys (or TEMV_AGE_SSH_AGENT).",
         default=None,
     )
     _ = decrypt_cmd.add_argument(
@@ -423,6 +462,12 @@ def main():
         os.environ["TEMV_AGE_IDENTITY"] = args["identity"]
     if args.get("recipient"):
         os.environ["TEMV_AGE_RECIPIENT"] = args["recipient"]
+    if args.get("identity_secret"):
+        os.environ["TEMV_AGE_IDENTITY_SECRET"] = args["identity_secret"]
+    if args.get("ssh_agent"):
+        os.environ["TEMV_AGE_SSH_AGENT"] = args["ssh_agent"]
+    if args.get("passphrase"):
+        os.environ["TEMV_AGE_MODE"] = "passphrase"
     content: str | None = None
     match args.get("subcommand", None):
         case "version":
