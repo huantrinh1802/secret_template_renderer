@@ -68,3 +68,19 @@ class TestDecrypt:
     def test_unicode_roundtrip(self):
         enc = encrypt("café ☕", "pw")
         assert decrypt(enc, "pw") == "café ☕"
+
+
+class TestEnvPrefix:
+    def test_str_prefix(self, monkeypatch):
+        monkeypatch.setenv("STR_BASIC_PASSWORD", "pw")
+        assert decrypt(encrypt("v", None), None) == "v"
+
+    def test_legacy_temv_prefix_still_works(self, monkeypatch):
+        monkeypatch.delenv("STR_BASIC_PASSWORD", raising=False)
+        monkeypatch.setenv("TEMV_BASIC_PASSWORD", "pw")
+        assert decrypt(encrypt("v", None), None) == "v"
+
+    def test_str_prefix_wins(self, monkeypatch):
+        monkeypatch.setenv("STR_BASIC_PASSWORD", "new")
+        monkeypatch.setenv("TEMV_BASIC_PASSWORD", "old")
+        assert decrypt(encrypt("v", "new"), None) == "v"

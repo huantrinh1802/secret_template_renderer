@@ -17,6 +17,7 @@ from typing import Any, Literal, TypedDict
 
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 
+from src.env import getenv
 from src.logger import Logging
 
 # Registry for secret providers
@@ -45,7 +46,7 @@ def load_plugins(plugin_type: plugins_type):
     cwd_config_plugins = pathlib.Path.cwd() / ".temv" / "plugins" / plugin_type
     if cwd_config_plugins.exists():
         _load_plugins_from_dir(cwd_config_plugins, plugin_type)
-    env_var_plugin_dir = os.getenv("TEMV_PLUGIN_DIR", None)
+    env_var_plugin_dir = getenv("PLUGIN_DIR")
     if env_var_plugin_dir is None:
         env_var_plugin_dir = os.getenv("XDG_CONFIG_DIR")
     if env_var_plugin_dir:
@@ -266,6 +267,12 @@ class Args(TypedDict):
     allow_shell: bool
     env: str | None
     shell: str | None
+    encryption: str
+    identity: str | None
+    recipient: str | None
+    identity_secret: str | None
+    passphrase: bool
+    ssh_agent: str | None
 
 
 def generate_commands() -> Args:
@@ -287,7 +294,7 @@ def generate_commands() -> Args:
     _ = generate_cmd.add_argument(
         "-p",
         "--password",
-        help="Password for decrypt (insecure: visible in process list; prefer TEMV_BASIC_PASSWORD env var).",
+        help="Password for decrypt (insecure: visible in process list; prefer STR_BASIC_PASSWORD env var).",
         default=None,
     )
     _ = generate_cmd.add_argument(
@@ -325,7 +332,7 @@ def generate_commands() -> Args:
     _ = session_cmd.add_argument(
         "-p",
         "--password",
-        help="Password for decrypt (prefer TEMV_BASIC_PASSWORD env var).",
+        help="Password for decrypt (prefer STR_BASIC_PASSWORD env var).",
         default=None,
     )
     _ = session_cmd.add_argument(
@@ -339,23 +346,95 @@ def generate_commands() -> Args:
     _ = encrypt_cmd.add_argument(
         "-p",
         "--password",
-        help="Password (insecure: visible in process list; prefer TEMV_BASIC_PASSWORD env var).",
+        help="Password (insecure: visible in process list; prefer STR_BASIC_PASSWORD env var).",
         default=None,
     )
     _ = encrypt_cmd.add_argument("-i", "--input", help="Input")
     _ = encrypt_cmd.add_argument("-f", "--file", help="File")
     _ = encrypt_cmd.add_argument("-o", "--output", help="Directory")
+    _ = encrypt_cmd.add_argument(
+        "-e",
+        "--encryption",
+        choices=["basic", "age"],
+        default="basic",
+        help="Encryption provider (default: basic).",
+    )
+    _ = encrypt_cmd.add_argument(
+        "--identity",
+        help="age identity (private key) file (or STR_AGE_IDENTITY).",
+        default=None,
+    )
+    _ = encrypt_cmd.add_argument(
+        "--identity-secret",
+        help="Read the age private key from a secrets provider, as provider:key[:path] (or STR_AGE_IDENTITY_SECRET).",
+        default=None,
+    )
+    _ = encrypt_cmd.add_argument(
+        "--passphrase",
+        help="Use age passphrase mode (reads STR_AGE_PASSPHRASE, else prompts).",
+        action="store_true",
+        default=False,
+    )
+    _ = encrypt_cmd.add_argument(
+        "--ssh-agent",
+        nargs="?",
+        const="1",
+        help="Encrypt to public keys held by the SSH agent; optional text filters keys (or STR_AGE_SSH_AGENT).",
+        default=None,
+    )
+    _ = encrypt_cmd.add_argument(
+        "-r",
+        "--recipient",
+        help="age recipient public key(s), comma-separated (or STR_AGE_RECIPIENT; defaults to the identity's).",
+        default=None,
+    )
 
     decrypt_cmd = subparsers.add_parser("decrypt", help="Decrypt input file or text")
     _ = decrypt_cmd.add_argument(
         "-p",
         "--password",
-        help="Password (insecure: visible in process list; prefer TEMV_BASIC_PASSWORD env var).",
+        help="Password (insecure: visible in process list; prefer STR_BASIC_PASSWORD env var).",
         default=None,
     )
     _ = decrypt_cmd.add_argument("-i", "--input", help="Input")
     _ = decrypt_cmd.add_argument("-f", "--file", help="File")
     _ = decrypt_cmd.add_argument("-o", "--output", help="Directory")
+    _ = decrypt_cmd.add_argument(
+        "-e",
+        "--encryption",
+        choices=["basic", "age"],
+        default="basic",
+        help="Encryption provider (default: basic).",
+    )
+    _ = decrypt_cmd.add_argument(
+        "--identity",
+        help="age identity (private key) file (or STR_AGE_IDENTITY).",
+        default=None,
+    )
+    _ = decrypt_cmd.add_argument(
+        "--identity-secret",
+        help="Read the age private key from a secrets provider, as provider:key[:path] (or STR_AGE_IDENTITY_SECRET).",
+        default=None,
+    )
+    _ = decrypt_cmd.add_argument(
+        "--passphrase",
+        help="Use age passphrase mode (reads STR_AGE_PASSPHRASE, else prompts).",
+        action="store_true",
+        default=False,
+    )
+    _ = decrypt_cmd.add_argument(
+        "--ssh-agent",
+        nargs="?",
+        const="1",
+        help="Encrypt to public keys held by the SSH agent; optional text filters keys (or STR_AGE_SSH_AGENT).",
+        default=None,
+    )
+    _ = decrypt_cmd.add_argument(
+        "-r",
+        "--recipient",
+        help="age recipient public key(s), comma-separated (or STR_AGE_RECIPIENT; defaults to the identity's).",
+        default=None,
+    )
 
     args: Args = vars(parser.parse_args())  #pyright: ignore[reportAssignmentType]
     return args
@@ -380,6 +459,16 @@ def main():
         input_content = read_stdin()
     if args["debug"]:
         logger.logger.setLevel(logging.DEBUG)
+    if args.get("identity"):
+        os.environ["STR_AGE_IDENTITY"] = args["identity"]
+    if args.get("recipient"):
+        os.environ["STR_AGE_RECIPIENT"] = args["recipient"]
+    if args.get("identity_secret"):
+        os.environ["STR_AGE_IDENTITY_SECRET"] = args["identity_secret"]
+    if args.get("ssh_agent"):
+        os.environ["STR_AGE_SSH_AGENT"] = args["ssh_agent"]
+    if args.get("passphrase"):
+        os.environ["STR_AGE_MODE"] = "passphrase"
     content: str | None = None
     match args.get("subcommand", None):
         case "version":
@@ -410,17 +499,19 @@ def main():
         case "encrypt":
             load_plugins("encryptions")
             if input_content:
-                content = providers["encryptions"]["basic"]["encrypt"](
+                content = providers["encryptions"][args["encryption"]]["encrypt"](
                     input_content, args.get("password", None)
                 )
         case "decrypt":
             load_plugins("encryptions")
             if input_content:
-                content = providers["encryptions"]["basic"]["decrypt"](
+                content = providers["encryptions"][args["encryption"]]["decrypt"](
                     input_content, args.get("password", None)
                 )
         case _:
             pass
+    if content is None and input_content and args.get("subcommand") in ("encrypt", "decrypt"):
+        sys.exit(1)
     if content is not None:
         if output := args.get("output", None):
             with open(output, "w") as f:
