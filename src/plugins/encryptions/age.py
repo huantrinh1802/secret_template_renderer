@@ -49,7 +49,7 @@ def _fetch_identity_secret() -> bytes | None:
     provider, _, rest = spec.partition(":")
     key, _, path = rest.partition(":")
     if not provider or not key:
-        logger.error(f"{_IDENTITY_SECRET_ENV} must look like provider:key[:path]")
+        logger.error("STR_AGE_IDENTITY_SECRET must look like provider:key[:path]")
         return None
     # Imported lazily: this plugin is loaded by src.app itself.
     from src import app
@@ -70,7 +70,7 @@ def _identity() -> tuple[list[str], bytes | None] | None:
     identity = os.getenv(_IDENTITY_ENV)
     if identity:
         return ["-i", str(pathlib.Path(identity).expanduser())], None
-    logger.error(f"No age identity configured (set {_IDENTITY_ENV} or {_IDENTITY_SECRET_ENV})")
+    logger.error("No age identity configured (set STR_AGE_IDENTITY or STR_AGE_IDENTITY_SECRET)")
     return None
 
 
@@ -135,7 +135,7 @@ def encrypt(plaintext: str, password: str | None = None) -> str | None:
         return None
     recipients = _recipients()
     if not recipients:
-        logger.error(f"No age recipient configured (set {_RECIPIENT_ENV} or {_SSH_AGENT_ENV})")
+        logger.error("No age recipient configured (set STR_AGE_RECIPIENT or STR_AGE_SSH_AGENT)")
         return None
     cmd = [age, "-e"]
     for recipient in recipients:
