@@ -266,6 +266,9 @@ class Args(TypedDict):
     allow_shell: bool
     env: str | None
     shell: str | None
+    encryption: str
+    identity: str | None
+    recipient: str | None
 
 
 def generate_commands() -> Args:
@@ -345,6 +348,24 @@ def generate_commands() -> Args:
     _ = encrypt_cmd.add_argument("-i", "--input", help="Input")
     _ = encrypt_cmd.add_argument("-f", "--file", help="File")
     _ = encrypt_cmd.add_argument("-o", "--output", help="Directory")
+    _ = encrypt_cmd.add_argument(
+        "-e",
+        "--encryption",
+        choices=["basic", "age"],
+        default="basic",
+        help="Encryption provider (default: basic).",
+    )
+    _ = encrypt_cmd.add_argument(
+        "--identity",
+        help="age identity (private key) file (or TEMV_AGE_IDENTITY).",
+        default=None,
+    )
+    _ = encrypt_cmd.add_argument(
+        "-r",
+        "--recipient",
+        help="age recipient public key(s), comma-separated (or TEMV_AGE_RECIPIENT; defaults to the identity's).",
+        default=None,
+    )
 
     decrypt_cmd = subparsers.add_parser("decrypt", help="Decrypt input file or text")
     _ = decrypt_cmd.add_argument(
@@ -356,6 +377,24 @@ def generate_commands() -> Args:
     _ = decrypt_cmd.add_argument("-i", "--input", help="Input")
     _ = decrypt_cmd.add_argument("-f", "--file", help="File")
     _ = decrypt_cmd.add_argument("-o", "--output", help="Directory")
+    _ = decrypt_cmd.add_argument(
+        "-e",
+        "--encryption",
+        choices=["basic", "age"],
+        default="basic",
+        help="Encryption provider (default: basic).",
+    )
+    _ = decrypt_cmd.add_argument(
+        "--identity",
+        help="age identity (private key) file (or TEMV_AGE_IDENTITY).",
+        default=None,
+    )
+    _ = decrypt_cmd.add_argument(
+        "-r",
+        "--recipient",
+        help="age recipient public key(s), comma-separated (or TEMV_AGE_RECIPIENT; defaults to the identity's).",
+        default=None,
+    )
 
     args: Args = vars(parser.parse_args())  #pyright: ignore[reportAssignmentType]
     return args
@@ -380,6 +419,10 @@ def main():
         input_content = read_stdin()
     if args["debug"]:
         logger.logger.setLevel(logging.DEBUG)
+    if args.get("identity"):
+        os.environ["TEMV_AGE_IDENTITY"] = args["identity"]
+    if args.get("recipient"):
+        os.environ["TEMV_AGE_RECIPIENT"] = args["recipient"]
     content: str | None = None
     match args.get("subcommand", None):
         case "version":
@@ -410,13 +453,13 @@ def main():
         case "encrypt":
             load_plugins("encryptions")
             if input_content:
-                content = providers["encryptions"]["basic"]["encrypt"](
+                content = providers["encryptions"][args["encryption"]]["encrypt"](
                     input_content, args.get("password", None)
                 )
         case "decrypt":
             load_plugins("encryptions")
             if input_content:
-                content = providers["encryptions"]["basic"]["decrypt"](
+                content = providers["encryptions"][args["encryption"]]["decrypt"](
                     input_content, args.get("password", None)
                 )
         case _:
