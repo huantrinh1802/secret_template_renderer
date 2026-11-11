@@ -36,8 +36,8 @@ dev = [
 ]
 
 # Packaging behavior (PEP 621) — keep this
-[tool.setuptools]
-packages = ["src"]
+[tool.setuptools.packages.find]
+include = ["src", "src.*"]
 
 [build-system]
 requires = ["setuptools>=61.0"]
