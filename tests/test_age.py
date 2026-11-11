@@ -24,12 +24,12 @@ def keypair(tmp_path):
 @pytest.fixture(autouse=True)
 def _clean_env(monkeypatch):
     for name in (
-        "TEMV_AGE_IDENTITY",
-        "TEMV_AGE_IDENTITY_SECRET",
-        "TEMV_AGE_RECIPIENT",
-        "TEMV_AGE_SSH_AGENT",
-        "TEMV_AGE_PASSPHRASE",
-        "TEMV_AGE_MODE",
+        "STR_AGE_IDENTITY",
+        "STR_AGE_IDENTITY_SECRET",
+        "STR_AGE_RECIPIENT",
+        "STR_AGE_SSH_AGENT",
+        "STR_AGE_PASSPHRASE",
+        "STR_AGE_MODE",
     ):
         monkeypatch.delenv(name, raising=False)
 
@@ -37,8 +37,8 @@ def _clean_env(monkeypatch):
 class TestRoundtrip:
     def test_explicit_recipient(self, keypair, monkeypatch):
         identity, public = keypair
-        monkeypatch.setenv("TEMV_AGE_IDENTITY", str(identity))
-        monkeypatch.setenv("TEMV_AGE_RECIPIENT", public)
+        monkeypatch.setenv("STR_AGE_IDENTITY", str(identity))
+        monkeypatch.setenv("STR_AGE_RECIPIENT", public)
         enc = age.encrypt("my secret")
         assert enc is not None and enc.startswith("age:")
         assert "\n" not in enc
@@ -46,7 +46,7 @@ class TestRoundtrip:
 
     def test_recipient_derived_from_identity(self, keypair, monkeypatch):
         identity, _ = keypair
-        monkeypatch.setenv("TEMV_AGE_IDENTITY", str(identity))
+        monkeypatch.setenv("STR_AGE_IDENTITY", str(identity))
         assert age.decrypt(age.encrypt("café ☕")) == "café ☕"
 
     def test_multiple_recipients(self, keypair, tmp_path, monkeypatch):
@@ -56,15 +56,15 @@ class TestRoundtrip:
         other_pub = subprocess.run(
             ["age-keygen", "-y", str(other)], check=True, capture_output=True, text=True
         ).stdout.strip()
-        monkeypatch.setenv("TEMV_AGE_RECIPIENT", f"{public}, {other_pub}")
+        monkeypatch.setenv("STR_AGE_RECIPIENT", f"{public}, {other_pub}")
         enc = age.encrypt("shared")
         for ident in (identity, other):
-            monkeypatch.setenv("TEMV_AGE_IDENTITY", str(ident))
+            monkeypatch.setenv("STR_AGE_IDENTITY", str(ident))
             assert age.decrypt(enc) == "shared"
 
     def test_armored_input(self, keypair, monkeypatch):
         identity, public = keypair
-        monkeypatch.setenv("TEMV_AGE_IDENTITY", str(identity))
+        monkeypatch.setenv("STR_AGE_IDENTITY", str(identity))
         armored = subprocess.run(
             ["age", "-a", "-r", public], input=b"armored", capture_output=True, check=True
         ).stdout.decode()
@@ -74,11 +74,11 @@ class TestRoundtrip:
 class TestFailures:
     def test_wrong_identity_returns_none(self, keypair, tmp_path, monkeypatch):
         _, public = keypair
-        monkeypatch.setenv("TEMV_AGE_RECIPIENT", public)
+        monkeypatch.setenv("STR_AGE_RECIPIENT", public)
         enc = age.encrypt("secret")
         other = tmp_path / "other.txt"
         subprocess.run(["age-keygen", "-o", str(other)], check=True, capture_output=True)
-        monkeypatch.setenv("TEMV_AGE_IDENTITY", str(other))
+        monkeypatch.setenv("STR_AGE_IDENTITY", str(other))
         assert age.decrypt(enc) is None
 
     def test_no_identity_returns_none(self):
@@ -89,7 +89,7 @@ class TestFailures:
 
     def test_malformed_value_returns_none(self, keypair, monkeypatch):
         identity, _ = keypair
-        monkeypatch.setenv("TEMV_AGE_IDENTITY", str(identity))
+        monkeypatch.setenv("STR_AGE_IDENTITY", str(identity))
         assert age.decrypt("age:!!!notbase64") is None
         assert age.decrypt("plain text") is None
 
@@ -101,22 +101,22 @@ class TestPassphrase:
         assert age.decrypt(enc, "pw") == "secret"
 
     def test_roundtrip_via_env(self, monkeypatch):
-        monkeypatch.setenv("TEMV_AGE_PASSPHRASE", "pw")
+        monkeypatch.setenv("STR_AGE_PASSPHRASE", "pw")
         assert age.decrypt(age.encrypt("café ☕")) == "café ☕"
 
     def test_wrong_passphrase_returns_none(self):
         assert age.decrypt(age.encrypt("secret", "right"), "wrong") is None
 
     def test_mode_without_passphrase_prompts(self, monkeypatch):
-        monkeypatch.setenv("TEMV_AGE_MODE", "passphrase")
+        monkeypatch.setenv("STR_AGE_MODE", "passphrase")
         monkeypatch.setattr(age, "getpass", lambda *_: "typed")
         enc = age.encrypt("secret")
         assert age.decrypt(enc, "typed") == "secret"
 
     def test_decrypt_routes_by_header(self, keypair, monkeypatch):
         identity, public = keypair
-        monkeypatch.setenv("TEMV_AGE_IDENTITY", str(identity))
-        monkeypatch.setenv("TEMV_AGE_RECIPIENT", public)
+        monkeypatch.setenv("STR_AGE_IDENTITY", str(identity))
+        monkeypatch.setenv("STR_AGE_RECIPIENT", public)
         assert age.decrypt(age.encrypt("by-key")) == "by-key"
         assert age.decrypt(age.encrypt("by-pass", "pw"), "pw") == "by-pass"
 
@@ -143,20 +143,20 @@ class TestSshKeys:
 
     def test_encrypt_to_agent_keys(self, ssh_key, fake_agent, monkeypatch):
         key, _ = ssh_key
-        monkeypatch.setenv("TEMV_AGE_SSH_AGENT", "1")
+        monkeypatch.setenv("STR_AGE_SSH_AGENT", "1")
         enc = age.encrypt("via-agent")
-        monkeypatch.setenv("TEMV_AGE_IDENTITY", str(key))
+        monkeypatch.setenv("STR_AGE_IDENTITY", str(key))
         assert age.decrypt(enc) == "via-agent"
 
     def test_agent_filter_no_match(self, fake_agent, monkeypatch):
-        monkeypatch.setenv("TEMV_AGE_SSH_AGENT", "nonexistent")
+        monkeypatch.setenv("STR_AGE_SSH_AGENT", "nonexistent")
         assert age.encrypt("x") is None
 
     def test_identity_from_secret_provider(self, ssh_key, fake_agent, monkeypatch):
         from src import app
 
         key, _ = ssh_key
-        monkeypatch.setenv("TEMV_AGE_SSH_AGENT", "temv-test")
+        monkeypatch.setenv("STR_AGE_SSH_AGENT", "temv-test")
         enc = age.encrypt("from-vault")
         calls = []
 
@@ -166,12 +166,12 @@ class TestSshKeys:
 
         monkeypatch.setattr(app, "get_secret", fake_get_secret)
         monkeypatch.setattr(app, "load_plugins", lambda *_: None)
-        monkeypatch.setenv("TEMV_AGE_IDENTITY_SECRET", "1password:Private/age key/private key")
+        monkeypatch.setenv("STR_AGE_IDENTITY_SECRET", "1password:Private/age key/private key")
         assert age.decrypt(enc) == "from-vault"
         assert calls == [("1password", "Private/age key/private key", "")]
 
     def test_malformed_identity_secret(self, monkeypatch):
-        monkeypatch.setenv("TEMV_AGE_IDENTITY_SECRET", "nokey")
+        monkeypatch.setenv("STR_AGE_IDENTITY_SECRET", "nokey")
         assert age._identity() is None
 
 

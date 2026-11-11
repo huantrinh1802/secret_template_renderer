@@ -14,12 +14,12 @@ logger = logging.getLogger(__name__)
 _PREFIX = "age:"
 _ARMOR_HEADER = "-----BEGIN AGE ENCRYPTED FILE-----"
 _SCRYPT_STANZA = b"-> scrypt "
-_IDENTITY_ENV = "TEMV_AGE_IDENTITY"
-_IDENTITY_SECRET_ENV = "TEMV_AGE_IDENTITY_SECRET"
-_RECIPIENT_ENV = "TEMV_AGE_RECIPIENT"
-_SSH_AGENT_ENV = "TEMV_AGE_SSH_AGENT"
-_PASSPHRASE_ENV = "TEMV_AGE_PASSPHRASE"
-_MODE_ENV = "TEMV_AGE_MODE"
+_IDENTITY_ENV = "STR_AGE_IDENTITY"
+_IDENTITY_SECRET_ENV = "STR_AGE_IDENTITY_SECRET"
+_RECIPIENT_ENV = "STR_AGE_RECIPIENT"
+_SSH_AGENT_ENV = "STR_AGE_SSH_AGENT"
+_PASSPHRASE_ENV = "STR_AGE_PASSPHRASE"
+_MODE_ENV = "STR_AGE_MODE"
 _SSH_KEY_TYPES = ("ssh-ed25519", "ssh-rsa")
 
 
@@ -119,7 +119,7 @@ def _use_passphrase(password: str | None) -> bool:
 
 
 def encrypt(plaintext: str, password: str | None = None) -> str | None:
-    """Encrypts to age recipients, or with a passphrase when one/``TEMV_AGE_MODE=passphrase`` is given."""
+    """Encrypts to age recipients, or with a passphrase when one/``STR_AGE_MODE=passphrase`` is given."""
     if _use_passphrase(password):
         pyrage = _pyrage()
         if pyrage is None:
@@ -169,7 +169,7 @@ def _decrypt_identity(data: bytes) -> str | None:
         result = subprocess.run([age, "-d", *args], input=data, capture_output=True)
     else:
         # The identity occupies stdin, so the ciphertext goes via a file.
-        with tempfile.TemporaryDirectory(prefix="temv-age-") as tmp:
+        with tempfile.TemporaryDirectory(prefix="str-age-") as tmp:
             path = pathlib.Path(tmp) / "value.age"
             path.write_bytes(data)
             result = subprocess.run([age, "-d", *args, str(path)], input=stdin, capture_output=True)
