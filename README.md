@@ -134,9 +134,11 @@ An SSH agent (1Password, Bitwarden, `ssh-agent`) never hands out private keys, s
 
 ```bash
 str encrypt -e age --ssh-agent "my-key-comment" -i "my secret"
-str decrypt -e age --identity-secret "1password:Private/my ssh key/private key?ssh-format=openssh" -i "age:..."
+str decrypt -e age --identity-secret "1password:Private/my ssh key/private key" -i "age:..."
 str decrypt -e age --identity-secret "bitwarden:my ssh key:sshKey.privateKey" -i "age:..."
 ```
+
+Tested with Ed25519 keys in the Bitwarden and 1Password SSH agents. If age rejects a 1Password key, append `?ssh-format=openssh` to the `op://` reference (not needed for the Ed25519 key tested; RSA untested). `provider:key[:path]` splits on colons, so vault/item names must not contain `:`.
 
 ---
 
