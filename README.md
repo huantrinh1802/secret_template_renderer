@@ -40,7 +40,7 @@ str generate -f <template> [-i <string>] [-o <output>] [-p <password>] [--allow-
 | `-f`, `--file` | Path to the Jinja2 template file |
 | `-i`, `--input` | Template content as a string (overrides `-f`) |
 | `-o`, `--output` | Output file path (default: stdout) |
-| `-p`, `--password` | Password for `decrypt()`/`encrypt()` — prefer `TEMV_BASIC_PASSWORD` env var; `-p` is visible in `ps aux` |
+| `-p`, `--password` | Password for `decrypt()`/`encrypt()` — prefer `STR_BASIC_PASSWORD` env var; `-p` is visible in `ps aux` |
 | `--allow-shell` | Enable the `shell()` template function (see [Security](#security)) |
 
 Template content can also be piped via stdin:
@@ -86,7 +86,7 @@ trap 'rm -f /tmp/temv-a3f9c2; unset AWS_SHARED_CREDENTIALS_FILE' EXIT
 | `-i`, `--input` | Template content as a string (overrides `-f`) |
 | `--env` | Environment variable name to point at the rendered temp file **(required)** |
 | `--shell` | Shell syntax to emit: `bash`, `zsh`, or `fish` (default: auto-detect from `$SHELL`) |
-| `-p`, `--password` | Password for `decrypt()` — prefer `TEMV_BASIC_PASSWORD` env var |
+| `-p`, `--password` | Password for `decrypt()` — prefer `STR_BASIC_PASSWORD` env var |
 
 The temp file is created with `0600` permissions under `/tmp` with a `temv-` prefix.
 
@@ -102,9 +102,41 @@ str decrypt [-i <ciphertext>] [-f <file>] [-o <output>] [-p <password>]
 Encrypted values use AES-256-GCM (authenticated encryption) and are prefixed with `v2:`. Old AES-256-CBC values (no prefix) are still decryptable for backward compatibility.
 
 The password is read from, in order:
-1. `TEMV_BASIC_PASSWORD` environment variable
+1. `STR_BASIC_PASSWORD` environment variable
 2. `-p` / `--password` flag (**avoid** — visible in `ps aux` and shell history)
 3. Interactive prompt (up to 3 attempts)
+
+The old `TEMV_BASIC_PASSWORD` and `TEMV_PLUGIN_DIR` names still work but log a deprecation warning.
+
+#### `age` provider (key pairs, passphrase, SSH keys)
+
+Select it with `-e age`. It uses the [`age`](https://age-encryption.org) and `age-keygen` binaries, which must be on `PATH`. Values are single-line `age:<base64>`; armored age files are accepted by `decrypt` too. In templates pass the provider as the second argument: `{{ decrypt("age:YWdl...", "age") }}`.
+
+```bash
+age-keygen -o ~/.config/str/key.txt
+export STR_AGE_IDENTITY=~/.config/str/key.txt
+str encrypt -e age -i "my secret"      # recipient defaults to the key derived from the identity
+str decrypt -e age -i "age:<base64>"
+```
+
+| Flag | Env var | Purpose |
+|------|---------|---------|
+| `-e`, `--encryption` | | `basic` (default) or `age` |
+| `--identity FILE` | `STR_AGE_IDENTITY` | age/SSH private key file (decrypt) |
+| `-r`, `--recipient KEYS` | `STR_AGE_RECIPIENT` | Public key(s), comma-separated (encrypt) |
+| `--identity-secret SPEC` | `STR_AGE_IDENTITY_SECRET` | Fetch the private key via a secrets provider, `provider:key[:path]`; kept in memory, never written to disk |
+| `--ssh-agent [FILTER]` | `STR_AGE_SSH_AGENT` | Encrypt to the ed25519/rsa public keys held by the SSH agent; optional text filters by key comment |
+| `--passphrase` | `STR_AGE_PASSPHRASE` | Passphrase mode (also `-p`); prompts if none given. Needs the optional `pyrage` extra: `pip install 'secret_template_renderer[age]'` |
+
+`decrypt` reads the value's header to choose passphrase or key mode.
+
+An SSH agent (1Password, Bitwarden, `ssh-agent`) never hands out private keys, so age can encrypt to the agent's public keys but cannot decrypt through the agent:
+
+```bash
+str encrypt -e age --ssh-agent "my-key-comment" -i "my secret"
+str decrypt -e age --identity-secret "1password:Private/my ssh key/private key?ssh-format=openssh" -i "age:..."
+str decrypt -e age --identity-secret "bitwarden:my ssh key:sshKey.privateKey" -i "age:..."
+```
 
 ---
 
@@ -132,7 +164,7 @@ Read a `.env` file and embed its contents. The path must be within the current w
 
 ### `decrypt(ciphertext, module="basic")` / `encrypt(plaintext, module="basic")`
 
-Decrypt or encrypt a value inline. The password comes from `TEMV_BASIC_PASSWORD` or the `-p` flag passed to `generate`.
+Decrypt or encrypt a value inline. The password comes from `STR_BASIC_PASSWORD` or the `-p` flag passed to `generate`.
 
 ```jinja
 DATABASE_PASSWORD={{ decrypt("v2:...") }}
@@ -191,7 +223,7 @@ Place plugin `.py` files in any of these locations:
 | Location | Scope |
 |----------|-------|
 | `.temv/plugins/<type>/` | Project-local |
-| `$TEMV_PLUGIN_DIR/<type>/` | User-global (env var) |
+| `$STR_PLUGIN_DIR/<type>/` | User-global (env var) |
 
 `<type>` is either `secrets` or `encryptions`.
 
