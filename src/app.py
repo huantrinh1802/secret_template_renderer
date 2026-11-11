@@ -510,6 +510,8 @@ def main():
                 )
         case _:
             pass
+    if content is None and input_content and args.get("subcommand") in ("encrypt", "decrypt"):
+        sys.exit(1)
     if content is not None:
         if output := args.get("output", None):
             with open(output, "w") as f:
