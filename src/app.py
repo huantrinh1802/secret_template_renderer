@@ -28,6 +28,10 @@ logger = Logging(__name__)
 type plugins_type = Literal["secrets", "encryptions"]
 
 
+class SecretError(RuntimeError):
+    """A template function could not produce its value; rendering must not continue."""
+
+
 class SafeFileSystemLoader(FileSystemLoader):
     """Restrict {% include %} / {% extends %} to files under the working directory."""
 
@@ -162,13 +166,19 @@ def generate_random_string(
 def decrypt(
     encrypted_value: str, module: str = "basic", password: str | None = None
 ) -> str | None:
-    return providers["encryptions"][module]["decrypt"](encrypted_value, password)
+    result = providers["encryptions"][module]["decrypt"](encrypted_value, password)
+    if result is None:
+        raise SecretError(f"decrypt() failed using the '{module}' provider")
+    return result
 
 
 def encrypt(
     value: str, module: str = "basic", password: str | None = None
 ) -> str | None:
-    return providers["encryptions"][module]["encrypt"](value, password)
+    result = providers["encryptions"][module]["encrypt"](value, password)
+    if result is None:
+        raise SecretError(f"encrypt() failed using the '{module}' provider")
+    return result
 
 
 def shell(command: str) -> str | None:
@@ -242,6 +252,16 @@ def render_template(template_content: str, password: str | None, allow_shell: bo
 
     template = env.from_string(template_content)
     return template.render()
+
+
+def write_private(path: str, content: str) -> None:
+    """Write content to path readable only by the owner (output may hold secrets)."""
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    try:
+        os.fchmod(fd, 0o600)  # the mode above only applies when the file is created
+        _ = os.write(fd, content.encode())
+    finally:
+        os.close(fd)
 
 
 def read_input(file_path: str):
@@ -441,6 +461,14 @@ def generate_commands() -> Args:
 
 
 def main():
+    try:
+        _main()
+    except SecretError as e:
+        logger.logger.error(str(e))
+        sys.exit(1)
+
+
+def _main():
     args = generate_commands()
     input_content: str | None = None
     if "input" in args and args["input"] is not None:
@@ -514,8 +542,7 @@ def main():
         sys.exit(1)
     if content is not None:
         if output := args.get("output", None):
-            with open(output, "w") as f:
-                _ = f.write(content)
+            write_private(output, content)
         else:
             print(content)
 
