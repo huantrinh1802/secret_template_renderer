@@ -83,3 +83,31 @@ class TestImportEnv:
         monkeypatch.chdir(tmp_path)
         with pytest.raises(ValueError, match="outside working directory"):
             import_env("../../../etc/passwd")
+
+
+class TestExitCodes:
+    def _run(self, monkeypatch, *argv):
+        from src import app
+
+        monkeypatch.setattr("sys.argv", ["str", *argv])
+        monkeypatch.setattr("sys.stdin", __import__("io").StringIO(""))
+        app.main()
+
+    def test_decrypt_wrong_password_exits_nonzero(self, monkeypatch):
+        from src.plugins.encryptions.basic import encrypt
+
+        enc = encrypt("v", "right")
+        with pytest.raises(SystemExit) as exc:
+            self._run(monkeypatch, "decrypt", "-p", "wrong", "-i", enc)
+        assert exc.value.code == 1
+
+    def test_age_encrypt_without_recipient_exits_nonzero(self, monkeypatch):
+        for name in ("STR_AGE_IDENTITY", "STR_AGE_IDENTITY_SECRET", "STR_AGE_RECIPIENT", "STR_AGE_SSH_AGENT", "STR_AGE_PASSPHRASE", "STR_AGE_MODE"):
+            monkeypatch.delenv(name, raising=False)
+        with pytest.raises(SystemExit) as exc:
+            self._run(monkeypatch, "encrypt", "-e", "age", "-i", "x")
+        assert exc.value.code == 1
+
+    def test_success_does_not_exit(self, monkeypatch, capsys):
+        self._run(monkeypatch, "encrypt", "-p", "pw", "-i", "x")
+        assert capsys.readouterr().out.startswith("v2:")
