@@ -152,7 +152,7 @@ Fetch a secret from a configured provider.
 {{ get_secret('pass', 'email/personal') }}
 ```
 
-**Bitwarden path format:** `login.<field>` or `field.<custom_field_name>`
+**Bitwarden path format:** `login.<field>`, `field.<custom_field_name>` or `sshKey.privateKey` / `sshKey.publicKey` (SSH key items)
 
 ### `import_env(path)`
 
