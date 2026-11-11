@@ -7,6 +7,8 @@ from typing import Callable
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 
+from src.env import getenv
+
 # Legacy CBC imports kept only for decrypting old v1 values
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
@@ -26,7 +28,7 @@ def derive_key(password: str, salt: bytes, iterations: int = _PBKDF2_ITERATIONS)
 def encrypt(plaintext: str, password: str | None) -> str:
     """Encrypts plaintext using AES-256-GCM (authenticated)."""
     if password is None:
-        password = os.getenv("TEMV_BASIC_PASSWORD")
+        password = getenv("BASIC_PASSWORD")
     if password is None:
         password = getpass()
     salt = os.urandom(16)
@@ -73,7 +75,7 @@ def _try_decrypt(encrypted: str, password: str) -> bytes | None:
 def decrypt(encrypted: str, password: str | None) -> str | None:
     """Decrypts AES-256-GCM encrypted text; falls back to legacy CBC for old values."""
     if password is None:
-        password = os.getenv("TEMV_BASIC_PASSWORD")
+        password = getenv("BASIC_PASSWORD")
 
     if password is not None:
         result = _try_decrypt(encrypted, password)
